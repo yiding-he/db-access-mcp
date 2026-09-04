@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/page :: head('设置配置密码')}"></head>
+<body>
+<div th:replace="~{fragments/page :: nav}"></div>
+<div class="narrow">
+    <div class="card">
+        <h1>首次启动：设置配置密码</h1>
+        <p class="sub">
+            还没有配置文件。设置一个配置密码后，会在
+            <code>~/.config/db-access-mcp/config.data</code> 生成加密配置文件（当前为空）。
+        </p>
+        <p class="err">
+            这个密码不是数据库密码，是解开本机配置文件的口令。忘记它没有任何找回途径：
+            配置文件即作废，只能删除文件重新设置并重建所有连接配置。
+        </p>
+        <form method="post" th:action="@{/admin/setup}">
+            <label for="password">配置密码</label>
+            <input type="password" id="password" name="password" autocomplete="new-password" minlength="8" autofocus required>
+            <label for="confirm">再输入一次</label>
+            <input type="password" id="confirm" name="confirm" autocomplete="new-password" minlength="8" required>
+            <div th:replace="~{fragments/page :: flash}"></div>
+            <button type="submit">创建配置文件</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

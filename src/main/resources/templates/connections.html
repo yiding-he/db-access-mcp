@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/page :: head('数据库连接')}"></th:block>
+    <style>.main { max-width: none; }</style>
+</head>
+<body>
+<div th:replace="~{fragments/page :: nav}"></div>
+<div class="main">
+    <div class="card">
+        <h1>数据库连接</h1>
+        <p class="sub">
+            连接名是 Agent 调用 <code>db_query</code> 时传的 <code>connection</code> 参数，创建后不允许修改；
+            需要改名请删除后重建。描述会作为 MCP resource 暴露给 Agent，用它说明这个连接属于哪个项目。
+        </p>
+        <div th:replace="~{fragments/page :: flash}"></div>
+        <p th:if="${#lists.isEmpty(connections)}" class="hint">还没有任何连接，先
+            <a th:href="@{/admin/connections/new}">新增一个</a>。
+        </p>
+        <table th:unless="${#lists.isEmpty(connections)}">
+            <thead>
+            <tr>
+                <th>连接名</th>
+                <th>描述</th>
+                <th>类型</th>
+                <th>地址</th>
+                <th>数据库</th>
+                <th>查询超时</th>
+                <th>&nbsp;</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${connections}">
+                <td><code th:text="${c.name}">name</code></td>
+                <td th:text="${c.description}">desc</td>
+                <td th:text="${c.kind.label}">MySQL</td>
+                <td th:text="${c.host} + ':' + ${c.port}">host</td>
+                <td th:text="${c.database.isBlank()} ? '-' : ${c.database}">db</td>
+                <td th:text="${c.queryTimeoutSeconds != null} ? ${c.queryTimeoutSeconds} + 's' : '-'">timeout</td>
+                <td class="actions">
+                    <form class="inline-form" method="post" th:action="@{'/admin/connections/' + ${c.name} + '/test'}">
+                        <button class="inline secondary" type="submit">测试</button>
+                    </form>
+                    <a class="btn secondary inline" th:href="@{'/admin/connections/' + ${c.name} + '/edit'}">编辑</a>
+                    <form class="inline-form" method="post" th:action="@{'/admin/connections/' + ${c.name} + '/delete'}">
+                        <button class="inline danger" type="submit"
+                                th:attr="data-name=${c.name}"
+                                onclick="return confirm('删除连接 ' + this.dataset.name + ' ？')">删除
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <a class="btn" th:href="@{/admin/connections/new}">新增连接</a>
+    </div>
+
+    <div class="card">
+        <h2>MCP 端点</h2>
+        <p class="sub">客户端配置里填 <code th:text="${mcpUrl}">http://127.0.0.1:17788/mcp</code>，
+            协议为 Streamable HTTP，只提供只读工具 <code>db_query</code> 与资源 <code>dbmcp://connections</code>。</p>
+    </div>
+</div>
+</body>
+</html>

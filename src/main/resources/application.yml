@@ -1,0 +1,21 @@
+server:
+  port: 17788
+  address: 127.0.0.1
+
+spring:
+  application:
+    name: db-access-mcp
+  thymeleaf:
+    cache: false
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"
+
+dbmcp:
+  config-path: ~/.config/db-access-mcp/config.data
+  mysql-binary: mysql
+  mongosh-binary: mongosh
+  query-timeout-seconds: 30
+  max-rows: 100
+  max-output-bytes: 61440

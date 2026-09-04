@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/page :: head('连接配置')}"></head>
+<body>
+<div th:replace="~{fragments/page :: nav}"></div>
+<div class="main">
+    <div class="card">
+        <h1 th:text="${mode == 'new'} ? '新增连接' : '编辑连接'">新增连接</h1>
+        <p class="sub">
+            保存后立即重新加密写入 <code>config.data</code>。这些配置只供本服务的只读查询使用，
+            建议为 Agent 单独准备一个只读账号（MySQL 可用 <code>SHOW GRANTS FOR CURRENT_USER()</code> 自查，MongoDB 需要 <code>read</code> 角色）。
+        </p>
+
+        <form method="post" id="connectionForm" th:action="@{/admin/connections/save}" th:object="${form}">
+            <input type="hidden" th:field="*{originalName}">
+
+            <div class="row">
+                <div>
+                    <label for="name">连接名</label>
+                    <input type="text" id="name" th:field="*{name}" maxlength="32"
+                           th:readonly="${mode == 'edit'}" required>
+                    <p class="hint" th:if="${mode == 'edit'}">连接名创建后不可修改。</p>
+                    <p class="hint" th:unless="${mode == 'edit'}">允许字母、数字、下划线、连字符，最长 32 个字符。</p>
+                </div>
+                <div>
+                    <label for="kind">数据库类型</label>
+                    <select id="kind" th:field="*{kind}" onchange="dbmcpToggleKind()">
+                        <option th:each="k : ${kinds}" th:value="${k.id}" th:text="${k.label}"></option>
+                    </select>
+                </div>
+            </div>
+
+            <label for="description">描述（给 Agent 看，说明这个连接属于哪个项目/环境）</label>
+            <textarea id="description" th:field="*{description}" required></textarea>
+
+            <div class="row">
+                <div>
+                    <label for="host">主机</label>
+                    <input type="text" id="host" th:field="*{host}" required>
+                </div>
+                <div>
+                    <label for="port">端口</label>
+                    <input type="text" id="port" th:field="*{port}" inputmode="numeric">
+                    <p class="hint">留空使用默认端口（MySQL 3306 / MongoDB 27017）。</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div>
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" th:field="*{username}" autocomplete="off">
+                </div>
+                <div>
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" th:attr="placeholder=${mode == 'edit'} ? '留空表示不修改已保存的密码' : ''"
+                           autocomplete="new-password">
+                </div>
+            </div>
+
+            <div class="row">
+                <div>
+                    <label for="database">数据库</label>
+                    <input type="text" id="database" th:field="*{database}">
+                    <p class="hint">MongoDB 必填；MySQL 可留空（留空时语句里需写全限定表名）。</p>
+                </div>
+                <div id="authSourceBox">
+                    <label for="authSource">authSource（MongoDB 认证库）</label>
+                    <input type="text" id="authSource" th:field="*{authSource}">
+                </div>
+            </div>
+
+            <div class="row">
+                <div>
+                    <label for="queryTimeoutSeconds">查询超时（秒）</label>
+                    <input type="text" id="queryTimeoutSeconds" th:field="*{queryTimeoutSeconds}" inputmode="numeric">
+                    <p class="hint">留空使用全局默认值（<span th:text="${globalTimeout}">30</span> 秒）。</p>
+                </div>
+                <div></div>
+            </div>
+
+            <div th:if="${error != null}" class="err" th:text="${error}">错误</div>
+            <div id="testResult" class="msg" hidden></div>
+
+            <button type="submit">保存</button>
+            <button type="button" id="btnTest" class="secondary"
+                    th:attr="data-url=@{/admin/connections/test}">测试连接</button>
+            <a class="btn secondary" th:href="@{/admin/connections}">返回列表</a>
+        </form>
+    </div>
+</div>
+<script>
+    function dbmcpToggleKind() {
+        var isMongo = document.getElementById('kind').value === 'mongodb';
+        document.getElementById('authSourceBox').style.display = isMongo ? '' : 'none';
+        document.getElementById('database').required = isMongo;
+    }
+
+    dbmcpToggleKind();
+
+    /*
+     * 测试连接走 AJAX：只拿结论填到结果区域，不回整张表单。
+     * 口令字段按设计不回显，一旦测试后重渲染页面就会把它抹空，
+     * 用户接着点保存就把空口令存下了——这是之前「密码未保存」的根本原因。
+     */
+    (function () {
+        var btn = document.getElementById('btnTest');
+        if (!btn) {
+            return;
+        }
+        var form = document.getElementById('connectionForm');
+        var box = document.getElementById('testResult');
+        var label = btn.textContent;
+        btn.addEventListener('click', function () {
+            box.hidden = true;
+            btn.disabled = true;
+            btn.textContent = '测试中…';
+            fetch(btn.getAttribute('data-url'), {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+                body: new URLSearchParams(new FormData(form)).toString()
+            }).then(function (response) {
+                var type = response.headers.get('content-type') || '';
+                if (type.indexOf('json') < 0) {
+                    throw new Error('服务响应异常，可能需要重新解锁');
+                }
+                return response.json();
+            }).then(function (data) {
+                var ok = data.ok === true;
+                box.className = ok ? 'msg' : 'err';
+                box.textContent = data.message || (ok ? '测试通过' : '测试失败');
+                box.hidden = false;
+            }).catch(function (e) {
+                box.className = 'err';
+                box.textContent = e.message || '测试请求失败';
+                box.hidden = false;
+            }).finally(function () {
+                btn.disabled = false;
+                btn.textContent = label;
+            });
+        });
+    })();
+</script>
+</body>
+</html>

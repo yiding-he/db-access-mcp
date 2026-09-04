@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' · db-access-mcp'">db-access-mcp</title>
+    <style>
+        :root {
+            --fg: #1f2933;
+            --muted: #6b7684;
+            --line: #dfe3e8;
+            --bg: #f6f7f9;
+            --accent: #1d4ed8;
+            --ok: #157f3d;
+            --err: #b42318;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font: 14px/1.6 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+            color: var(--fg);
+            background: var(--bg);
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            padding: 12px 24px;
+            background: #fff;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .brand { font-weight: 700; letter-spacing: .3px; }
+
+        .topbar a { color: var(--accent); text-decoration: none; }
+
+        .topbar a:hover { text-decoration: underline; }
+
+        .state { margin-left: auto; color: var(--muted); font-size: 13px; }
+
+        .main { max-width: 1080px; margin: 24px auto; padding: 0 20px 48px; }
+
+        .card {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 22px 24px;
+            margin-bottom: 18px;
+        }
+
+        h1 { font-size: 20px; margin: 0 0 4px; }
+
+        h2 { font-size: 16px; margin: 24px 0 8px; }
+
+        .sub { color: var(--muted); margin: 0 0 18px; }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+
+        th { color: var(--muted); font-weight: 600; font-size: 13px; }
+
+        td.actions { white-space: nowrap; text-align: right; }
+
+        code { background: #f0f2f5; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+
+        label { display: block; margin: 14px 0 4px; font-weight: 600; }
+
+        input[type=text], input[type=password], input[type=number], select, textarea {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            font: inherit;
+            background: #fff;
+        }
+
+        input[readonly] { background: #f0f2f5; color: var(--muted); }
+
+        textarea { resize: vertical; min-height: 56px; }
+
+        .hint { color: var(--muted); font-size:13px; margin: 4px 0 0; }
+
+        .row { display: flex; gap: 16px; flex-wrap: wrap; }
+
+        .row > div { flex: 1 1 220px; }
+
+        button, .btn {
+            display: inline-block;
+            margin-top: 16px;
+            padding: 8px 16px;
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            background: var(--accent);
+            color: #fff;
+            font: inherit;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        button.secondary, .btn.secondary {
+            background: #fff;
+            color: var(--accent);
+        }
+
+        button.danger { background: #fff; color: var(--err); border-color: #f0c5c0; }
+
+        /* 表格里的一排操作按钮：button 与 a.btn 必须走同一条规则，否则链接按钮会大一号 */
+        button.inline, .btn.inline { margin: 0; padding: 5px 12px; font-size: 13px; }
+
+        form.inline-form { display: inline; }
+
+        .msg, .err {
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin: 14px 0 0;
+        }
+
+        .msg { background: #eaf6ee; color: var(--ok); border: 1px solid #bfe3ca; }
+
+        .err { background: #fdeceb; color: var(--err); border: 1px solid #f5c6c1; }
+
+        .narrow { max-width: 460px; margin: 8vh auto; }
+    </style>
+</head>
+<body>
+
+<div th:fragment="nav" class="topbar">
+    <span class="brand">db-access-mcp</span>
+    <th:block th:if="${unlocked}">
+        <a th:href="@{/admin/connections}">数据库连接</a>
+        <a th:href="@{/admin/connections/new}">新增连接</a>
+        <a th:href="@{/admin/password}">配置密码</a>
+    </th:block>
+    <span class="state">
+        <th:block th:if="${unlocked}">已解锁 · <span th:text="${connectionCount}">0</span> 个连接</th:block>
+        <th:block th:unless="${unlocked}">未解锁</th:block>
+    </span>
+</div>
+
+<div th:fragment="flash">
+    <p class="msg" th:if="${message != null}" th:text="${message}"></p>
+    <p class="err" th:if="${error != null}" th:text="${error}"></p>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/page :: head('解锁配置')}"></head>
+<body>
+<div th:replace="~{fragments/page :: nav}"></div>
+<div class="narrow">
+    <div class="card">
+        <h1>解锁配置文件</h1>
+        <p class="sub">
+            配置内容加密保存在 <code>~/.config/db-access-mcp/config.data</code>，
+            解密后的密钥只留在内存里。服务进程重启后需要重新输入。
+        </p>
+        <p class="hint" th:if="${status.name() == 'UNLOCKED'}">
+            服务端已被其它浏览器解锁，本浏览器仍需输入一次配置密码。
+        </p>
+        <form method="post" th:action="@{/admin/unlock}">
+            <label for="password">配置密码</label>
+            <input type="password" id="password" name="password" autocomplete="current-password" autofocus required>
+            <div th:replace="~{fragments/page :: flash}"></div>
+            <button type="submit">解锁</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>
