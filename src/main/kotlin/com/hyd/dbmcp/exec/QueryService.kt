@@ -51,6 +51,7 @@ class QueryService(
     private val state: AppState,
     private val mySqlClient: MySqlClient,
     private val mongoClient: MongoShellClient,
+    private val redisClient: RedisCliClient,
 ) {
 
     private val log = LoggerFactory.getLogger(QueryService::class.java)
@@ -72,6 +73,7 @@ class QueryService(
             when (connection.kind) {
                 DbKind.MYSQL -> mySqlClient.execute(connection, statement)
                 DbKind.MONGODB -> mongoClient.execute(connection, statement)
+                DbKind.REDIS -> redisClient.execute(connection, statement)
             }
         }.getOrElse { e ->
             log.error("启动 {} 命令失败，连接={}", connection.kind.id, connection.name, e)
@@ -80,6 +82,8 @@ class QueryService(
         val error = when {
             result.timedOut -> "执行超时，进程已被终止"
             !result.succeeded -> result.stderr.ifBlank { "${connection.kind.label} 命令返回退出码 ${result.exitCode}" }
+            // redis-cli 的错误回复写在 stdout 且退出码为 0，必须按输出形态识别
+            connection.kind == DbKind.REDIS -> result.lines.firstOrNull { it.startsWith("(error)") }?.let { it.removePrefix("(error)").trim() }
             else -> null
         }
         val report = QueryReport(
@@ -125,6 +129,7 @@ class QueryService(
     private fun probeStatement(kind: DbKind): String = when (kind) {
         DbKind.MYSQL -> "SELECT 1"
         DbKind.MONGODB -> "db.runCommand({ping: 1})"
+        DbKind.REDIS -> "PING"
     }
 
     private fun digest(statement: String, limit: Int = DIGEST_CHARS): String =

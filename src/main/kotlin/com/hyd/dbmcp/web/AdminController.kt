@@ -189,6 +189,36 @@ class AdminController(
         return "connections"
     }
 
+    @GetMapping("/settings")
+    fun settingsPage(model: Model): String {
+        addPageAttributes(model)
+        val config = runCatching { state.requireUnlocked() }.getOrNull()
+        model.addAttribute("mysqlBinary", config?.global?.mysqlBinary ?: "")
+        model.addAttribute("mongoshBinary", config?.global?.mongoshBinary ?: "")
+        model.addAttribute("redisBinary", config?.global?.redisBinary ?: "")
+        return "settings"
+    }
+
+    @PostMapping("/settings/save")
+    fun saveSettings(
+        @RequestParam mysqlBinary: String,
+        @RequestParam mongoshBinary: String,
+        @RequestParam redisBinary: String,
+        redirect: RedirectAttributes,
+    ): String {
+        try {
+            state.saveSettings(mysqlBinary, mongoshBinary, redisBinary)
+        } catch (e: NotReadyException) {
+            return "redirect:/admin/unlock"
+        } catch (e: RuntimeException) {
+            log.error("保存全局设置失败", e)
+            redirect.addFlashAttribute("error", "保存失败：${e.message}")
+            return "redirect:/admin/settings"
+        }
+        redirect.addFlashAttribute("message", "全局设置已保存")
+        return "redirect:/admin/settings"
+    }
+
     @GetMapping("/connections/new")
     fun newConnection(model: Model): String {
         addPageAttributes(model)

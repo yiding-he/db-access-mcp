@@ -121,6 +121,24 @@ class AppState(private val store: ConfigStore) {
         persist(snapshot.connections.filterNot { it.name == name })
     }
 
+    /** 更新全局设置（命令路径等），空串/空白视为清除，回退到 PATH 查找 */
+    fun saveSettings(mysqlBinary: String?, mongoshBinary: String?, redisBinary: String?) {
+        val snapshot = requireUnlocked()
+        val updated = snapshot.copy(
+            global = GlobalConfig(
+                mysqlBinary = mysqlBinary?.trim()?.ifBlank { null },
+                mongoshBinary = mongoshBinary?.trim()?.ifBlank { null },
+                redisBinary = redisBinary?.trim()?.ifBlank { null },
+            ),
+        )
+        synchronized(monitor) {
+            val current = state ?: throw NotReadyException()
+            store.writeEnvelope(ConfigCipher.reseal(encode(updated), current.handle))
+            state = UnlockedState(current.handle, updated)
+            log.info("全局设置已写回：{}", store.path)
+        }
+    }
+
     private fun persist(connections: List<DbConnection>) {
         val current = state ?: throw NotReadyException()
         synchronized(monitor) {

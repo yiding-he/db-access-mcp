@@ -8,6 +8,7 @@ import com.hyd.dbmcp.config.DbMcpProperties
 import com.hyd.dbmcp.exec.CliRunner
 import com.hyd.dbmcp.exec.MongoShellClient
 import com.hyd.dbmcp.exec.MySqlClient
+import com.hyd.dbmcp.exec.RedisCliClient
 import com.hyd.dbmcp.exec.QueryService
 import com.hyd.dbmcp.util.Json
 import tools.jackson.databind.JsonNode
@@ -43,7 +44,7 @@ class McpHandlerTest {
         val props = DbMcpProperties().apply { configPath = dir.resolve("config.data").toString() }
         val runner = CliRunner()
         state = AppState(ConfigStore(props))
-        handler = McpHandler(state, QueryService(state, MySqlClient(props, runner), MongoShellClient(props, runner)))
+        handler = McpHandler(state, QueryService(state, MySqlClient(state, props, runner), MongoShellClient(state, props, runner), RedisCliClient(state, props, runner)))
     }
 
     @Test

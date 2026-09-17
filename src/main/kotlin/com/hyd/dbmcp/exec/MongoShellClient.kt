@@ -1,5 +1,6 @@
 package com.hyd.dbmcp.exec
 
+import com.hyd.dbmcp.config.AppState
 import com.hyd.dbmcp.config.DbConnection
 import com.hyd.dbmcp.config.DbMcpProperties
 import java.nio.file.Files
@@ -19,7 +20,11 @@ import org.springframework.stereotype.Component
  *   临时脚本由 Java 创建（POSIX 下仅属主可读），执行完立即删除。
  */
 @Component
-class MongoShellClient(private val props: DbMcpProperties, private val runner: CliRunner) {
+class MongoShellClient(
+    private val state: AppState,
+    private val props: DbMcpProperties,
+    private val runner: CliRunner,
+) {
 
     private val template: String by lazy { loadTemplate() }
 
@@ -29,7 +34,10 @@ class MongoShellClient(private val props: DbMcpProperties, private val runner: C
             return runner.run(
                 CliRequest(
                     label = "mongosh:${connection.name}",
-                    command = listOf(props.mongoshBinary, "--nodb", "--quiet", "--norc", "--file", script.toString()),
+                    command = listOf(
+                        state.requireUnlocked().global.mongoshBinary ?: "mongosh",
+                        "--nodb", "--quiet", "--norc", "--file", script.toString(),
+                    ),
                     environment = mapOf(ENV_URI to connection.mongoUri()),
                     rowCounter = RowCounters.NON_BLANK_LINES,
                     maxRows = props.maxRows,

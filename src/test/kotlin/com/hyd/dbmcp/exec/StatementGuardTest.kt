@@ -137,6 +137,21 @@ class StatementGuardTest {
         assertNotNull((outcome as GuardOutcome.Rejected).reason.ifBlank { null })
     }
 
+    @Test
+    fun `Redis 读命令白名单与参数校验`() {
+        assertTrue(allowed(DbKind.REDIS, "GET msg"))
+        assertTrue(allowed(DbKind.REDIS, "SCAN 0 COUNT 5"))
+        assertTrue(allowed(DbKind.REDIS, "KEYS cache:*"))
+        assertTrue(allowed(DbKind.REDIS, "GET \"key with space\""))
+
+        rejected(DbKind.REDIS, "SET msg hello")
+        rejected(DbKind.REDIS, "DEL msg")
+        rejected(DbKind.REDIS, "CONFIG SET maxmemory 100mb")
+        rejected(DbKind.REDIS, "GET -h1.2.3.4")
+        rejected(DbKind.REDIS, "")
+        rejected(DbKind.REDIS, "FLUSHALL")
+    }
+
     private fun allowed(kind: DbKind, statement: String): Boolean =
         StatementGuard.check(kind, statement) is GuardOutcome.Allowed
 

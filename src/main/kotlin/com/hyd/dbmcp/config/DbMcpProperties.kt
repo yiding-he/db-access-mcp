@@ -11,10 +11,6 @@ class DbMcpProperties {
     /** 加密配置文件位置，支持 `~` 前缀 */
     var configPath: String = "~/.config/db-access-mcp/config.data"
 
-    var mysqlBinary: String = "mysql"
-
-    var mongoshBinary: String = "mongosh"
-
     /** 单条查询最长执行时间，到点强杀子进程 */
     var queryTimeoutSeconds: Long = 30
 

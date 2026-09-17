@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/page :: head('全局配置')}"></head>
+<body>
+<div th:replace="~{fragments/page :: nav}"></div>
+<div class="main">
+    <div class="card">
+        <h1>全局配置</h1>
+        <p class="sub">
+            这些设置保存在 <code>config.data</code> 中，对两种数据库的连接全局生效。
+            命令路径留空表示使用 PATH 里的 <code>mysql</code> / <code>mongosh</code>；
+            PATH 中也找不到时查询会报「无法启动命令行工具」。
+        </p>
+        <div th:replace="~{fragments/page :: flash}"></div>
+
+        <form method="post" th:action="@{/admin/settings/save}">
+            <label for="mysqlBinary">mysql 命令路径</label>
+            <input type="text" id="mysqlBinary" name="mysqlBinary" th:value="${mysqlBinary}"
+                   placeholder="例：C:/tools/mysql/bin/mysql.exe" autocomplete="off">
+            <p class="hint">留空使用 PATH 中的 <code>mysql</code>。</p>
+
+            <label for="mongoshBinary">mongosh 命令路径</label>
+            <input type="text" id="mongoshBinary" name="mongoshBinary" th:value="${mongoshBinary}"
+                   placeholder="例：C:/tools/mongosh/bin/mongosh.exe" autocomplete="off">
+            <p class="hint">留空使用 PATH 中的 <code>mongosh</code>。</p>
+
+            <label for="redisBinary">redis-cli 命令路径（预留）</label>
+            <input type="text" id="redisBinary" name="redisBinary" th:value="${redisBinary}"
+                   placeholder="例：C:/tools/redis/redis-cli.exe" autocomplete="off">
+            <p class="hint">留空使用 PATH 中的 <code>redis-cli</code>。Redis 连接类型尚未支持，此路径仅预留。</p>
+
+            <button type="submit">保存</button>
+            <a class="btn secondary" th:href="@{/admin/connections}">返回列表</a>
+        </form>
+    </div>
+</div>
+</body>
+</html>

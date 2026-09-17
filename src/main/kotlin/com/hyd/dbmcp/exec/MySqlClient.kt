@@ -1,5 +1,6 @@
 package com.hyd.dbmcp.exec
 
+import com.hyd.dbmcp.config.AppState
 import com.hyd.dbmcp.config.DbConnection
 import com.hyd.dbmcp.config.DbMcpProperties
 import org.springframework.stereotype.Component
@@ -16,7 +17,11 @@ import org.springframework.stereotype.Component
  * - `--init-command="SET SESSION TRANSACTION READ ONLY"` 让服务端直接拒绝写操作（ERROR 1792）。
  */
 @Component
-class MySqlClient(private val props: DbMcpProperties, private val runner: CliRunner) {
+class MySqlClient(
+    private val state: AppState,
+    private val props: DbMcpProperties,
+    private val runner: CliRunner,
+) {
 
     fun execute(connection: DbConnection, statement: String): CliResult = runner.run(
         CliRequest(
@@ -32,7 +37,7 @@ class MySqlClient(private val props: DbMcpProperties, private val runner: CliRun
     )
 
     private fun command(connection: DbConnection): List<String> = buildList {
-        add(props.mysqlBinary)
+        add(state.requireUnlocked().global.mysqlBinary ?: "mysql")
         add("-h"); add(connection.host)
         add("-P"); add(connection.port.toString())
         add("-u"); add(connection.username)

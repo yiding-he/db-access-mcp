@@ -29,6 +29,11 @@ object ConnectionValidation {
         if (candidate.kind == DbKind.MONGODB && candidate.database.isBlank()) {
             errors += "MongoDB 必须指定数据库名"
         }
+        if (candidate.kind == DbKind.REDIS && candidate.database.isNotBlank() &&
+            !Regex("^\\d{1,2}$").matches(candidate.database)
+        ) {
+            errors += "Redis 的 database 字段填 DB 编号（0-15 的整数）或留空"
+        }
         return errors
     }
 }

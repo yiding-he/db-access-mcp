@@ -24,7 +24,7 @@ class AppConfigTest {
         val json = Json.write(AppConfig(listOf(mysql())).toJson())
 
         assertEquals(
-            """{"version":1,"connections":[{"name":"app_mysql","kind":"mysql","description":"主库只读账号",""" +
+            """{"version":1,"globalConfig":{},"connections":[{"name":"app_mysql","kind":"mysql","description":"主库只读账号",""" +
                 """"host":"10.0.0.1","port":3306,"username":"reader","password":"secret",""" +
                 """"database":"app","authSource":""}]}""",
             json,

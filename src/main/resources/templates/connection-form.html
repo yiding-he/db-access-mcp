@@ -41,7 +41,7 @@
                 <div>
                     <label for="port">端口</label>
                     <input type="text" id="port" th:field="*{port}" inputmode="numeric">
-                    <p class="hint">留空使用默认端口（MySQL 3306 / MongoDB 27017）。</p>
+                    <p class="hint">留空使用默认端口（MySQL 3306 / MongoDB 27017 / Redis 6379）。</p>
                 </div>
             </div>
 
@@ -56,12 +56,19 @@
                            autocomplete="new-password">
                 </div>
             </div>
+            <div class="row">
+                <div>
+                    <label>Redis 的用户名与密码</label>
+                    <p class="hint">普通 Redis 实例无密码，密码留空即无认证；有 ACL 的实例填用户名与密码。</p>
+                </div>
+                <div></div>
+            </div>
 
             <div class="row">
                 <div>
                     <label for="database">数据库</label>
                     <input type="text" id="database" th:field="*{database}">
-                    <p class="hint">MongoDB 必填；MySQL 可留空（留空时语句里需写全限定表名）。</p>
+                    <p class="hint">MongoDB 必填；MySQL 可留空（留空时语句里需写全限定表名）；Redis 填 DB 编号（可用 0-15）或留空。</p>
                 </div>
                 <div id="authSourceBox">
                     <label for="authSource">authSource（MongoDB 认证库）</label>

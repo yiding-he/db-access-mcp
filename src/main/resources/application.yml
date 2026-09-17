@@ -14,8 +14,6 @@ logging:
 
 dbmcp:
   config-path: ~/.config/db-access-mcp/config.data
-  mysql-binary: mysql
-  mongosh-binary: mongosh
   query-timeout-seconds: 30
   max-rows: 100
   max-output-bytes: 61440

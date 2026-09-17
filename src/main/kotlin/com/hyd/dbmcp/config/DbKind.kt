@@ -5,7 +5,9 @@ enum class DbKind(val id: String, val label: String, val defaultPort: Int) {
 
     MYSQL("mysql", "MySQL", 3306),
 
-    MONGODB("mongodb", "MongoDB", 27017);
+    MONGODB("mongodb", "MongoDB", 27017),
+
+    REDIS("redis", "Redis", 6379);
 
     companion object {
         fun of(id: String): DbKind? = entries.firstOrNull { it.id.equals(id, ignoreCase = true) }

@@ -38,6 +38,19 @@ object StatementGuard {
 
     private val MYSQL_ALLOWED_FIRST = setOf("SELECT", "WITH", "SHOW", "DESC", "DESCRIBE", "EXPLAIN")
 
+    /**
+     * Redis 的读命令白名单。redis-cli 的 argv 模式下首 token 就是命令，
+     * 白名单已是完整防线（无多语句注入口）；按需在此补命令。
+     */
+    private val REDIS_ALLOWED_FIRST = setOf(
+        "GET", "MGET", "STRLEN", "GETRANGE", "TYPE", "EXISTS", "TTL", "PTTL", "KEYS", "SCAN", "RANDOMKEY",
+        "LRANGE", "LLEN", "LINDEX",
+        "SMEMBERS", "SISMEMBER", "SCARD",
+        "HGET", "HMGET", "HGETALL", "HKEYS", "HVALS", "HLEN",
+        "ZRANGE", "ZREVRANGE", "ZRANGEBYSCORE", "ZSCORE", "ZCOUNT", "ZCARD", "ZRANK",
+        "DBSIZE", "INFO", "CONFIG", "PING",
+    )
+
     /** 首关键字允许被括号前缀，否则 `(SELECT ...) UNION (SELECT ...)` 这类合法只读写法会被误杀 */
     private val MYSQL_FIRST_WORD = Regex("""^\s*[ (]*([A-Za-z]+)""")
 
@@ -83,7 +96,30 @@ object StatementGuard {
         return when (kind) {
             DbKind.MYSQL -> checkMySql(statement)
             DbKind.MONGODB -> checkMongo(statement)
+            DbKind.REDIS -> checkRedis(statement)
         }
+    }
+
+    private fun checkRedis(statement: String): GuardOutcome {
+        val argv = RedisStatementArgv.split(statement)
+        if (argv.isEmpty()) {
+            return GuardOutcome.Rejected("Redis 语句为空")
+        }
+        val command = argv.first().uppercase()
+        if (command !in REDIS_ALLOWED_FIRST) {
+            return GuardOutcome.Rejected(
+                "Redis 只允许只读命令，必须在 ${REDIS_ALLOWED_FIRST.sorted().joinToString("/")} 中，当前是「${argv.first()}」",
+            )
+        }
+        // 选项开头的 token 会被 redis-cli 当自己的参数解析（如 -h 改变目标地址），一律拒绝，逼写引号
+        argv.drop(1).firstOrNull { it.startsWith("-") }?.let {
+            return GuardOutcome.Rejected("Redis 参数不允许以破折号开头：「$it」，值请用引号包住或去掉破折号")
+        }
+        // CONFIG 命令只允许 GET 子命令
+        if (command == "CONFIG" && (argv.size < 2 || argv[1].uppercase() != "GET")) {
+            return GuardOutcome.Rejected("CONFIG 只允许 CONFIG GET 子命令")
+        }
+        return GuardOutcome.Allowed(statement)
     }
 
     private fun checkMySql(statement: String): GuardOutcome {
