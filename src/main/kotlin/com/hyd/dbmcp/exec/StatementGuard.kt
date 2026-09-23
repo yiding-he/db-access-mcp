@@ -72,14 +72,19 @@ object StatementGuard {
 
     private val BLOCK_COMMENT = Regex("""/\*[^*]*\*+(?:[^/*][^*]*\*+)*/""")
 
+    /** 集合对象上的只读方法：查询、统计及其别名（findOneAnd* 等名字含 find 但会写入，不收） */
     private val MONGO_COLLECTION_METHODS = setOf(
-        "find", "findOne", "countDocuments", "estimatedDocumentCount", "distinct", "aggregate", "stats",
+        "find", "findOne", "count", "countDocuments", "estimatedDocumentCount", "distinct", "aggregate",
+        "getIndexes", "getIndexSpecs", "getIndexKeys",
+        "stats", "dataSize", "storageSize", "totalSize", "totalIndexSize",
+        "isCapped", "options",
     )
 
-    private val MONGO_DB_METHODS = setOf("getCollectionNames", "listCollections", "getCollectionInfos")
+    /** 数据库对象上的只读方法；runCommand/adminCommand/管理面命令可执行任意操作，不收 */
+    private val MONGO_DB_METHODS = setOf("getCollectionNames", "listCollections", "getCollectionInfos", "stats")
 
     /** 只读游标上允许的后链方法 */
-    private val MONGO_CURSOR_METHODS = setOf("limit", "sort", "skip", "batchSize", "hint", "maxTimeMS", "toArray", "count")
+    private val MONGO_CURSOR_METHODS = setOf("limit", "sort", "skip", "batchSize", "hint", "maxTimeMS", "toArray", "count", "explain")
 
     private val AGGREGATE_WRITE_STAGES = listOf(
         // 用字符类 [$] 写_literal_ 美元符号：原始字符串里反斜杠不能转义 $，会误触 Kotlin 插值
@@ -151,22 +156,41 @@ object StatementGuard {
         if (calls.isEmpty()) {
             return GuardOutcome.Rejected("MongoDB 语句没有方法调用，例如 db.orders.find()")
         }
-        val first = calls.first().name
-        when {
-            first in MONGO_DB_METHODS -> Unit
-            first == "getCollection" -> {
-                val second = calls.getOrNull(1)?.name
+        var rest = calls
+        when (val first = rest.first().name) {
+            in MONGO_DB_METHODS -> rest = rest.drop(1)
+            "getCollection" -> {
+                rest = rest.drop(1)
+                if (rest.firstOrNull()?.name == "explain") rest = rest.drop(1)
+                val method = rest.firstOrNull()?.name
                     ?: return GuardOutcome.Rejected("db.getCollection(\"x\") 之后还需要只读方法，例如 .find()")
-                if (second !in MONGO_COLLECTION_METHODS) {
-                    return GuardOutcome.Rejected(rejectedCollectionMethod(second))
+                if (method !in MONGO_COLLECTION_METHODS) {
+                    return GuardOutcome.Rejected(rejectedCollectionMethod(method))
                 }
+                rest = rest.drop(1)
             }
 
-            first in MONGO_COLLECTION_METHODS -> Unit
+            // explain() 前缀：db.<集合>.explain(...).find(...)，必须紧跟集合名段，其后必须是集合只读方法
+            "explain" -> {
+                if (chain.segments.first().args != null) {
+                    return GuardOutcome.Rejected(
+                        "explain() 只能跟在集合之后，例如 db.orders.explain().find({}) 或 db.orders.find({}).explain()",
+                    )
+                }
+                rest = rest.drop(1)
+                val method = rest.firstOrNull()?.name
+                    ?: return GuardOutcome.Rejected("db.<集合>.explain() 之后还需要只读方法，例如 .find()")
+                if (method !in MONGO_COLLECTION_METHODS) {
+                    return GuardOutcome.Rejected(rejectedCollectionMethod(method))
+                }
+                rest = rest.drop(1)
+            }
+
+            in MONGO_COLLECTION_METHODS -> rest = rest.drop(1)
 
             else -> return GuardOutcome.Rejected(rejectedCollectionMethod(first))
         }
-        calls.drop(if (first == "getCollection") 2 else 1).forEach { call ->
+        rest.forEach { call ->
             if (call.name !in MONGO_CURSOR_METHODS) {
                 return GuardOutcome.Rejected("MongoDB 语句中的「${call.name}()」不是只读游标方法，已被拒绝")
             }
